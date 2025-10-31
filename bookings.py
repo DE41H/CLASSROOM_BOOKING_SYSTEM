@@ -125,7 +125,6 @@ class Menu:
             room_no: str = input("Enter Room Number: ")
             if not Room.exists(room_no):
                 raise RoomNotFoundError(room_no, "Try Again..")
-                ConnectionRefusedError
             Room.display_hours()
             choice: str = input("Enter booking hour: ")
             if choice.isdigit() and int(choice) in range(24):
@@ -167,7 +166,7 @@ class Menu:
                 0: "Return" 
             }
             for option in options:
-                print(f'[{option}] {self.options[option]}')
+                print(f'[{option}] {options[option]}')
             choice: str = input("\nEnter Option Number: ")
             if choice.isdigit() and int(choice) in options:
                 match int(choice):
@@ -219,6 +218,9 @@ class Room:
         self.building: str = building
         self.capacity: int = capacity
         self.booked_hours: list[bool] = booked_hours
+
+    def __repr__(self) -> str:
+        return f'Room No.: {self.room_no}, Building: {self.building}, Capacity: {self.capacity}'
 
     @classmethod
     def load(cls) -> None:
@@ -308,8 +310,7 @@ class Room:
                 factor = f' => {"Booked" if booked_hours[i] else "Available"}'
             else:
                 factor = ""
-            out += f'[{i}] {i}:00 to {i + 1}:00 ' + factor + "\n"
-            out += factor + "\n"
+            out += f'[{i}] {i}:00 to {i + 1}:00 => ' + factor + "\n"
         return out
 
 
