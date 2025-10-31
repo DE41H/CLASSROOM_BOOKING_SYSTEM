@@ -18,6 +18,11 @@ class NotAnOption(Exception):
     def __repr__(self) -> str:
         return f'Error: {self.message} is not a valid option! {self.end}'
     
+class NaN(NotAnOption):
+
+    def __repr__(self) -> str:
+        return f'Error: {self.message} is not a numeric value! {self.end}'
+    
 
 class RoomNotFoundError(Exception):
 
@@ -40,8 +45,15 @@ class RoomAlreadyExistsError(RoomNotFoundError):
 
 class TimeslotAlreadyBookedError(Exception):
 
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+    def __init__(self, room_no: str, hour: int) -> None:
+        self.room_no: str = room_no
+        self.hour: int = hour
+        super().__init__(self)
+        print(self)
+        time.sleep(Config.DELAY)
+
+    def __repr__(self) -> str:
+        return f'Room Number {self.room_no} is already booked from {self.hour}:00 to {self.hour + 1}:00\nTry Again...'
 
 
 class Config:
@@ -55,8 +67,20 @@ class Config:
 class Menu:
     
     def __init__(self) -> None:
-        self.options: dict[int, str] = {}
-        self.functions: dict[int, Callable[[], None]] = {}
+        self.options: dict[int, str] = {
+            1: "View Room",
+            2: "Book Room",
+            3: "Create Room",
+            4: "Find Room",
+            0: "Exit"
+        }
+        self.functions: dict[int, Callable[[], None]] = {
+            1: self.view,
+            2: self.book,
+            3: self.create,
+            4: self.find,
+            0: self.exit
+        }
         self.running: bool = True
 
     def __repr__(self) -> str:
@@ -65,14 +89,13 @@ class Menu:
     def clear(self) -> None:
         if os.name == "nt":
             os.system("cls")
-            return ""
         else:
             print("\033[H" + "\033[J" + "\033[3J")
 
     def menu(self) -> None:
         while self.running:
             self.clear()
-            print("\n============= [ Main Menu ] =============n")
+            print("\n============= [ MAIN MENU ] =============\n")
             for option in self.options:
                 print(f'[{option}] {self.options[option]}')
             choice: str = input("\nEnter Option ID: ")
@@ -87,6 +110,7 @@ class Menu:
     def view(self) -> None:
         while True:
             self.clear()
+            print("\n============= [ VIEW ROOM ] =============\n")
             room_no: str = input("Enter Room Number: ")
             if Room.exists(room_no):
                 print(Room.view(room_no))
@@ -97,28 +121,49 @@ class Menu:
     def book(self):
         while True:
             self.clear()
+            print("\n============= [ BOOK ROOM ] =============\n")
             room_no: str = input("Enter Room Number: ")
+            if not Room.exists(room_no):
+                raise RoomNotFoundError(room_no, "Try Again..")
+                ConnectionRefusedError
             Room.display_hours()
             choice: str = input("Enter booking hour: ")
             if choice.isdigit() and int(choice) in range(24):
-                if Room.exists(room_no):
-                    hour: int = int(choice)
-                    booked: bool = Room.book(room_no, hour)
-                    if booked:
-                        return
-                    else:
-                        raise TimeslotAlreadyBookedError(room_no, hour)
+                hour: int = int(choice)
+                booked: bool = Room.book(room_no, hour)
+                if booked:
+                    return
+                else:
+                    raise TimeslotAlreadyBookedError(room_no, hour)
             else:
                 raise NotAnOption(choice, "\nChoose a valid option! Try Again...")
                 
 
     def create(self):
-        pass
+        while True:
+            self.clear()
+            print("\n============= [ CREATE ROOM ] =============\n")
+            room_no: str = input("\nEnter Room Number: ")
+            if not Room.exists(room_no):
+                building: str = input("Enter Building: ")
+                while True:
+                    capacity: str = input("Enter Capacity: ")
+                    if capacity.isdigit():
+                        break
+                    else:
+                        raise NaN(capacity, "\nTry Again...")
+                Room.create(room_no, building, int(capacity))
+            else:
+                raise RoomAlreadyExistsError(room_no, "\nTry Again...")
 
     def find(self):
-        pass
+        while True:
+            self.clear()
+            print("\n============= [ FIND ROOM ] =============\n")
+            
 
     def exit(self):
+        Room.save()
         self.running = False
 
 
@@ -126,14 +171,11 @@ class Room:
 
     rooms: ClassVar[dict[str, Room]] = {}
 
-    def __init__(self, room_no: str, building: str, capacity: int, booked_hours: list[bool] | None = None) -> None:
+    def __init__(self, room_no: str, building: str, capacity: int, booked_hours: list[bool] = [False] * 24) -> None:
         self.room_no: str = room_no
         self.building: str = building
         self.capacity: int = capacity
-        if booked_hours:
-            self.booked_hours: list[bool] = booked_hours
-        else:
-            self.booked_hours: list[bool] = []
+        self.booked_hours: list[bool] = booked_hours
 
     @classmethod
     def load(cls) -> None:
@@ -146,7 +188,7 @@ class Room:
     def save(cls) -> None:
         with open(Config.BOOKINGS_FILE, "w", newline=Config.NEWLINE) as file:
             writer = csv.writer(file)
-            header: list[str] = ["room_ no", "building", "capacity", "booked_hours"]
+            header: list[str] = ["room_no", "building", "capacity", "booked_hours"]
             writer.writerow(header)
             for room_no, room in cls.rooms.items():
                 writer.writerow([room_no, room.building, str(room.capacity), cls.join(room.booked_hours)])
@@ -171,8 +213,9 @@ class Room:
 
     @classmethod
     def book(cls, room_no: str, hour: int) -> bool:
-        if cls.rooms[room_no] in cls.by_hour(hour):
-            cls.rooms[room_no].booked_hours[hour] = True
+        room: Room = cls.rooms[room_no]
+        if not room.booked_hours[hour]:
+            room.booked_hours[hour] = True
             return True
         else:
             return False
@@ -211,12 +254,7 @@ class Room:
     
     @staticmethod
     def join(booked_hours: list[bool]) -> str:
-        out: str = ""
-        for i in range(24):
-            if i != 0:
-                out += Config.LIST_DELIMITER
-            out += str(int(booked_hours[i]))
-        return out
+        return Config.LIST_DELIMITER.join([str(int(item)) for item in booked_hours])
     
     @staticmethod
     def display_hours(booked_hours: list[bool] | None = None) -> str:
@@ -227,15 +265,8 @@ class Room:
                 factor = f' => {"Booked" if booked_hours[i] else "Available"}'
             else:
                 factor = ""
-            if i == 0:
-                out += f'[{i}] {i}:00A.M. to {i + 1}:00A.M.'
-            if i < 11:
-                out += f'\n[{i}] {i}:00A.M. to {i + 1}:00A.M.'
-            elif i == 11:
-                out += f'\n[{i}] {i}:00A.M. to {i + 1}:00P.M.'
-            elif i > 11:
-                out += f'\n[{i}] {i}:00P.M. to {i + 1}:00P.M.'
-            out += factor
+            out += f'[{i}] {i}:00 to {i + 1}:00 ' + factor + "\n"
+            out += factor + "\n"
         return out
 
 
