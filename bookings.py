@@ -113,12 +113,6 @@ class Menu:
             except (NotAnOption, NaN) as err:
                 print(err)
                 sleep(Config.DELAY)
-            finally:
-                choice: str = input("Press ENTER to abort...\nEnter text to retry: ")
-                if choice == "":
-                    break
-                else:
-                    continue
                 
             
     def view(self) -> None:
@@ -344,23 +338,20 @@ class Room:
             except (IOError, Exception):
                 print(f'Error: Problem loading {Config.BOOKINGS_FILE}')
             finally:
-                choice: str = input("Press ENTER to abort...\nEnter text to retry: ")
-                if choice == "":
-                    Menu.running = False
-                    break
-                else:
-                    continue
+                Menu.running = False
 
     @classmethod
     def save(cls) -> None:
         while True:
             try:
+                os.makedirs(os.path.dirname(Config.BOOKINGS_FILE), exist_ok=True)
                 with open(Config.BOOKINGS_FILE, "w", newline=Config.NEWLINE) as file:
                     writer = csv.writer(file)
                     header: list[str] = ["room_no", "building", "capacity", "booked_hours"]
                     writer.writerow(header)
                     for room_no, room in cls.rooms.items():
                         writer.writerow([room_no, room.building, str(room.capacity), cls.join(room.booked_hours)])
+                break
             except FileNotFoundError:
                 print(f'Error: {Config.BOOKINGS_FILE} not found')
             except PermissionError:
@@ -370,11 +361,7 @@ class Room:
             except (IOError, Exception):
                 print(f'Error: Problem loading {Config.BOOKINGS_FILE}')
             finally:
-                choice: str = input("Press ENTER to abort...\nEnter text to retry: ")
-                if choice == "":
-                    Menu.running = False
-                else:
-                    continue
+                Menu.running = False
 
     @classmethod
     def create(cls, room_no: str, building: str, capacity: int) -> bool:
@@ -391,7 +378,7 @@ class Room:
         out += "Room Number => " + room.room_no + "\n"
         out += "Building => " + room.building + "\n\n"
         out += "Bookings:\n"
-        cls.display_hours(room.booked_hours)
+        out += cls.display_hours(room.booked_hours) + "\n"
         return out
 
     @classmethod
