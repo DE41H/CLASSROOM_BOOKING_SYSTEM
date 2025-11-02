@@ -96,7 +96,7 @@ class Menu:
                 print("\n============= [ MAIN MENU ] =============\n")
                 for option in self.options:
                     print(f'[{option}] {self.options[option]}')
-                choice: str = self.get_option("Enter Option ID: ", set(str(item) for item in self.options.keys()))
+                choice: str = self.get_option("\nEnter Option ID: ", set(str(item) for item in self.options.keys()))
                 func: Callable[[], None] | None = self.functions.get(int(choice))
                 if func:
                     func()
@@ -123,7 +123,7 @@ class Menu:
             if not Room.exists(room_no):
                 raise RoomNotFoundError(room_no)
             print(Room.display_hours(Room.rooms[room_no].booked_hours))
-            hour: int = int(self.get_option("Enter booking hour", set(str(item) for item in range(24))))
+            hour: int = int(self.get_option("Enter booking hour: ", set(str(item) for item in range(24))))
             booked: bool = Room.book(room_no, hour)
             if booked:
                 print(f'Room {room_no} has been booked from {hour}:00 to {hour + 1}:00')
@@ -317,10 +317,10 @@ class Room:
         for i in range(24):
             status: str = ""
             if booked_hours:
-                status = f'{"Booked" if booked_hours[i] else "Available"}'
+                status = f' => {"Booked" if booked_hours[i] else "Available"}'
             else:
                 status = ""
-            out += f'[{i}] {i}:00 to {i + 1}:00 => ' + status + "\n"
+            out += f'[{i}] {i}:00 to {i + 1}:00' + status + "\n"
         return out
 
 
