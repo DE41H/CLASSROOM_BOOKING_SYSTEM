@@ -6,7 +6,7 @@ import csv
 from time import sleep
 
 
-class NotAnOption(Exception):
+class OptionDoesNotExistError(Exception):
 
     def __init__(self, message: str) -> None:
         self.message: str = message
@@ -15,7 +15,7 @@ class NotAnOption(Exception):
     def __str__(self) -> str:
         return f'Error: {self.message} is not a valid option!\nTry Again...'
     
-class NaN(Exception):
+class InvalidNumericInputError(Exception):
 
     def __init__(self, message: str) -> None:
         self.message: str = message
@@ -137,10 +137,10 @@ class Menu:
         try:
             self.clear()
             print("\n============= [ CREATE ROOM ] =============\n")
-            room_no: str = input("Enter Room Number: ")
+            room_no: str = self.get_string("Enter Room Number: ")
             if Room.exists(room_no):
                 raise RoomAlreadyExistsError(room_no)
-            building: str = input("Enter Building: ")
+            building: str = self.get_string("Enter Building: ")
             capacity: int = self.get_int("Enter Capacity: ")
             Room.create(room_no, building, capacity)
             print(f'Room with the following details has been created:\nRoom No.: {room_no}\nBuilding: {building}\nCapacity: {capacity}')
@@ -162,7 +162,7 @@ class Menu:
         option: int = int(self.get_option("\nEnter Option Number: ", set(str(item) for item in options.keys())))
         match option:
             case 1:
-                building: str = input("Enter Building: ")
+                building: str = self.get_string("Enter Building: ")
                 rooms: set[Room] = Room.by_building(building)
                 if len(rooms):
                     print(f'Rooms available in {building}: {self.format(rooms)}')
@@ -190,6 +190,14 @@ class Menu:
         input("Press ENTER to continue...")
 
     @staticmethod
+    def get_string(prompt: str) -> str:
+        x: str = input(prompt).strip()
+        while x == "":
+            print('Error: Input cannot be empty!\nTry Again...')
+            x: str = input(prompt).strip()
+        return x
+
+    @staticmethod
     def format(rooms: set[Room]) -> str:
         room_nos: list[str] = []
         for room in rooms:
@@ -200,7 +208,7 @@ class Menu:
     def get_int(prompt: str) -> int:
         x: str = input(prompt)
         while not x.isdigit():
-            print(NaN(x))
+            print(InvalidNumericInputError(x))
             x = input(prompt)
         return int(x)
     
@@ -208,7 +216,7 @@ class Menu:
     def get_option(prompt: str, options: set[str]):
         x: str = input(prompt)
         while not x in options:
-            print(NotAnOption(x))
+            print(OptionDoesNotExistError(x))
             x = input(prompt)
         return x
 
