@@ -77,14 +77,14 @@ class Menu:
             0: "Exit"
         }
         self.functions: dict[int, Callable[[], None]] = {
-            1: self.view,
-            2: self.book,
-            3: self.create,
-            4: self.find,
-            0: self.exit
+            1: self._view,
+            2: self._book,
+            3: self._create,
+            4: self._find,
+            0: self._exit
         }
 
-    def clear(self) -> None:
+    def _clear(self) -> None:
         if os.name == "nt":
             os.system("cls")
         else:
@@ -92,18 +92,18 @@ class Menu:
 
     def menu(self) -> None:
         while self.running:
-                self.clear()
+                self._clear()
                 print("\n============= [ MAIN MENU ] =============\n")
                 for option in self.options:
                     print(f'[{option}] {self.options[option]}')
-                choice: str = self.get_option("\nEnter Option ID: ", set(str(item) for item in self.options.keys()))
+                choice: str = self._get_option("\nEnter Option ID: ", set(str(item) for item in self.options.keys()))
                 func: Callable[[], None] | None = self.functions.get(int(choice))
                 if func:
                     func()
             
-    def view(self) -> None:
+    def _view(self) -> None:
         try:
-            self.clear()
+            self._clear()
             print("\n============= [ VIEW ROOM ] =============\n")
             room_no: str = input("Enter Room Number: ")
             if Room.exists(room_no):
@@ -115,15 +115,15 @@ class Menu:
             print(err)
             sleep(Config.DELAY)
 
-    def book(self):
+    def _book(self):
         try:
-            self.clear()
+            self._clear()
             print("\n============= [ BOOK ROOM ] =============\n")
             room_no: str = input("Enter Room Number: ")
             if not Room.exists(room_no):
                 raise RoomNotFoundError(room_no)
             print(Room.display_hours(Room.rooms[room_no].booked_hours))
-            hour: int = int(self.get_option("Enter booking hour: ", set(str(item) for item in range(24))))
+            hour: int = int(self._get_option("Enter booking hour: ", set(str(item) for item in range(24))))
             booked: bool = Room.book(room_no, hour)
             if booked:
                 print(f'Room {room_no} has been booked from {hour}:00 to {hour + 1}:00')
@@ -133,23 +133,23 @@ class Menu:
             print(err)
         sleep(Config.DELAY)
                 
-    def create(self):
+    def _create(self):
         try:
-            self.clear()
+            self._clear()
             print("\n============= [ CREATE ROOM ] =============\n")
-            room_no: str = self.get_string("Enter Room Number: ")
+            room_no: str = self._get_string("Enter Room Number: ")
             if Room.exists(room_no):
                 raise RoomAlreadyExistsError(room_no)
-            building: str = self.get_string("Enter Building: ")
-            capacity: int = self.get_int("Enter Capacity: ")
+            building: str = self._get_string("Enter Building: ")
+            capacity: int = self._get_int("Enter Capacity: ")
             Room.create(room_no, building, capacity)
             print(f'Room with the following details has been created:\nRoom No.: {room_no}\nBuilding: {building}\nCapacity: {capacity}')
         except RoomAlreadyExistsError as err:
             print(err)
         sleep(Config.DELAY)
 
-    def find(self):
-        self.clear()
+    def _find(self):
+        self._clear()
         print("\n============= [ FIND ROOM ] =============\n")
         options: dict[int, str] = {
             1: "Search by building",
@@ -159,28 +159,28 @@ class Menu:
         }
         for item in options:
             print(f'[{item}] {options[item]}')
-        option: int = int(self.get_option("\nEnter Option Number: ", set(str(item) for item in options.keys())))
+        option: int = int(self._get_option("\nEnter Option Number: ", set(str(item) for item in options.keys())))
         match option:
             case 1:
-                building: str = self.get_string("Enter Building: ")
+                building: str = self._get_string("Enter Building: ")
                 rooms: set[Room] = Room.by_building(building)
                 if len(rooms):
-                    print(f'Rooms available in {building}: {self.format(rooms)}')
+                    print(f'Rooms available in {building}: {self._format(rooms)}')
                 else:
                     print(f'No rooms available in {building}')
             case 2:
-                capacity: int = self.get_int("Enter required capacity: ")
+                capacity: int = self._get_int("Enter required capacity: ")
                 rooms: set[Room] = Room.by_capacity(capacity)
                 if len(rooms):
-                    print(f'Rooms available with capacity of {capacity}: {self.format(rooms)}')
+                    print(f'Rooms available with capacity of {capacity}: {self._format(rooms)}')
                 else:
                     print(f'No rooms available with capacity of {capacity}')
             case 3:
                 print(Room.display_hours())
-                hour: int = int(self.get_option("Enter hour: ", set([str(item) for item in range(24)])))
+                hour: int = int(self._get_option("Enter hour: ", set([str(item) for item in range(24)])))
                 rooms: set[Room] = Room.by_hour(hour)
                 if len(rooms):
-                    print(f'Rooms available from {hour}:00 to {hour + 1}:00: {self.format(rooms)}')
+                    print(f'Rooms available from {hour}:00 to {hour + 1}:00: {self._format(rooms)}')
                 else:
                     print(f'No rooms available with from {hour}:00 to {hour + 1}:00')
             case 0:
@@ -190,7 +190,7 @@ class Menu:
         input("Press ENTER to continue...")
 
     @staticmethod
-    def get_string(prompt: str) -> str:
+    def _get_string(prompt: str) -> str:
         x: str = input(prompt).strip()
         while x == "":
             print('Error: Input cannot be empty!\nTry Again...')
@@ -198,14 +198,14 @@ class Menu:
         return x
 
     @staticmethod
-    def format(rooms: set[Room]) -> str:
+    def _format(rooms: set[Room]) -> str:
         room_nos: list[str] = []
         for room in rooms:
             room_nos.append(room.room_no)
         return ", ".join(room_nos)
 
     @staticmethod
-    def get_int(prompt: str) -> int:
+    def _get_int(prompt: str) -> int:
         x: str = input(prompt)
         while not x.isdigit():
             print(InvalidNumericInputError(x))
@@ -213,7 +213,7 @@ class Menu:
         return int(x)
     
     @staticmethod
-    def get_option(prompt: str, options: set[str]):
+    def _get_option(prompt: str, options: set[str]):
         x: str = input(prompt)
         while not x in options:
             print(OptionDoesNotExistError(x))
@@ -221,7 +221,7 @@ class Menu:
         return x
 
     @classmethod
-    def exit(cls):
+    def _exit(cls):
         Room.save()
         cls.running = False
 
@@ -244,7 +244,7 @@ class Room:
         with open(Config.BOOKINGS_FILE, "r", newline=Config.NEWLINE) as file:
             reader = csv.DictReader(file, delimiter=Config.DELIMITER)
             for row in reader:
-                cls.rooms[row["room_no"]] = Room(row["room_no"], row["building"], int(row["capacity"]), cls.split(row["booked_hours"]))
+                cls.rooms[row["room_no"]] = Room(row["room_no"], row["building"], int(row["capacity"]), cls._split(row["booked_hours"]))
 
     @classmethod
     def save(cls) -> None:
@@ -254,7 +254,7 @@ class Room:
             header: list[str] = ["room_no", "building", "capacity", "booked_hours"]
             writer.writerow(header)
             for room_no, room in cls.rooms.items():
-                writer.writerow([room_no, room.building, str(room.capacity), cls.join(room.booked_hours)])
+                writer.writerow([room_no, room.building, str(room.capacity), cls._join(room.booked_hours)])
 
     @classmethod
     def create(cls, room_no: str, building: str, capacity: int) -> bool:
@@ -312,11 +312,11 @@ class Room:
         return rooms
 
     @staticmethod
-    def split(booked_hours: str) -> list[bool]:
+    def _split(booked_hours: str) -> list[bool]:
         return [bool(int(item)) for item in booked_hours.split(Config.LIST_DELIMITER)]
     
     @staticmethod
-    def join(booked_hours: list[bool]) -> str:
+    def _join(booked_hours: list[bool]) -> str:
         return Config.LIST_DELIMITER.join([str(int(item)) for item in booked_hours])
     
     @staticmethod
@@ -335,20 +335,16 @@ class Room:
 def main():
     try:
         Room.load()
+        menu: Menu = Menu()
+        menu.menu()
     except FileNotFoundError:
         print(f'Error: {Config.BOOKINGS_FILE} not found')
-        Menu.running = False
     except PermissionError:
         print(f'Error: Lacking permission to write to {Config.BOOKINGS_FILE}')
-        Menu.running = False
     except (ValueError, csv.Error, KeyError):
         print(f'Error: Data format error in {Config.BOOKINGS_FILE}')
-        Menu.running = False
     except (IOError, Exception):
         print(f'Error: Problem loading {Config.BOOKINGS_FILE}')
-        Menu.running = False
-    menu: Menu = Menu()
-    menu.menu()
 
 if __name__ == "__main__":
     main()
